@@ -1,12 +1,25 @@
-import React from 'react';
-import { Image, StyleSheet, Platform, View, Button } from 'react-native';
-import { Link } from 'expo-router'; // To navigate between screens
+import React, { useEffect } from 'react';
+import { Image, StyleSheet, View, Button } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
 export default function HomeScreen() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkProfile = async () => {
+      const profile = await AsyncStorage.getItem('userProfile');
+      if (!profile) {
+        router.replace('/character');
+      }
+    };
+    checkProfile();
+  }, []);
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
