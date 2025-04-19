@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Animated, Dimensions } from 'react-native';
+import useXPSystem from './useXPSystem';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -12,6 +13,8 @@ export type BalloonData = {
 };
 
 export default function useBalloonWave() {
+  const { addXP, calculateXP } = useXPSystem(); // ✅ moved inside function
+
   const [wave, setWave] = useState(1);
   const [balloons, setBalloons] = useState<BalloonData[]>(generateWave(1));
 
@@ -33,6 +36,9 @@ export default function useBalloonWave() {
     setBalloons(updated);
 
     if (updated.every(b => b.popped)) {
+      const xp = calculateXP(wave);
+      addXP(xp);
+
       setTimeout(() => {
         const nextWave = wave + 1;
         setWave(nextWave);
