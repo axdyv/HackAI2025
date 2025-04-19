@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, Dimensions, Platform } from 'react-native';
-import useBalloonWave from '@/components/useBalloonWave';
+import useBalloonWave from '@/hooks/useBalloonWave';
 import Balloon from '@/components/Balloon';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;

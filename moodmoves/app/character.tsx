@@ -1,69 +1,68 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import useXPSystem from '@/hooks/useXPSystem';
+import XPBar from '@/components/XPBar';
 
-const avatars = ['🐱', '🧙‍♀️', '🤖', '🧑‍🚀', '🦸', '🐉'];
+export default function CharacterOverview() {
+  const { profile } = useXPSystem();
 
-export default function CharacterScreen() {
-  const [name, setName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
-  const router = useRouter();
-
-  const saveProfile = async () => {
-    if (!name || !selectedAvatar) {
-      Alert.alert('Oops', 'Please choose both a name and an avatar.');
-      return;
+  const handleInteract = (type: string) => {
+    switch (type) {
+      case 'pet':
+        Alert.alert('😊', `${profile?.name} feels loved!`);
+        break;
+      case 'cheer':
+        Alert.alert('💖', `${profile?.name} says: You got this!`);
+        break;
+      default:
+        Alert.alert('🤖', 'Hello, human.');
     }
-
-    const profile = {
-      name,
-      avatar: selectedAvatar,
-      level: 1,
-      xp: 0,
-    };
-
-    await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
-    router.replace('/'); // Go back to home or game hub
   };
+
+  if (!profile) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>Loading character...</Text>
+      </View>
+    );
+  }
+
+  const equipped = profile.equippedItems || {};
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Your Character</Text>
+      <Text style={styles.avatar}>
+        {profile.avatar}
+        {equipped.head ?? ''}
+      </Text>
+      <Text style={styles.name}>{profile.name}</Text>
 
-      <Text style={styles.label}>Name:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Your name"
-        value={name}
-        onChangeText={setName}
-      />
+      <XPBar level={profile.level} xp={profile.xp} />
 
-      <Text style={styles.label}>Choose an Avatar:</Text>
-      <View style={styles.avatarRow}>
-        {avatars.map((a) => (
-          <TouchableOpacity key={a} onPress={() => setSelectedAvatar(a)} style={styles.avatar}>
-            <Text style={[styles.avatarText, selectedAvatar === a && styles.selectedAvatar]}>{a}</Text>
-          </TouchableOpacity>
-        ))}
+      <Text style={styles.subheading}>Equipped Items:</Text>
+      <Text style={styles.item}>🧢 Head: {equipped.head ?? 'None'}</Text>
+      <Text style={styles.item}>🖐 Hand: {equipped.hand ?? 'None'}</Text>
+
+      <View style={styles.buttons}>
+        <TouchableOpacity style={styles.button} onPress={() => handleInteract('pet')}>
+          <Text style={styles.buttonText}>Pet 🤗</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => handleInteract('cheer')}>
+          <Text style={styles.buttonText}>Cheer Up 🌟</Text>
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
-        <Text style={styles.saveText}>Start Your Journey</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fdf6ec' },
-  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20 },
-  label: { fontSize: 18, marginTop: 20, marginBottom: 5 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 10, width: '80%', fontSize: 16 },
-  avatarRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginVertical: 10 },
-  avatar: { padding: 10 },
-  avatarText: { fontSize: 36 },
-  selectedAvatar: { borderWidth: 2, borderColor: '#e63946', borderRadius: 10 },
-  saveButton: { marginTop: 30, backgroundColor: '#e63946', paddingVertical: 14, paddingHorizontal: 30, borderRadius: 10 },
-  saveText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: '#fef6e4', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  avatar: { fontSize: 64 },
+  name: { fontSize: 26, fontWeight: 'bold', marginBottom: 10 },
+  subheading: { marginTop: 20, fontSize: 18, fontWeight: 'bold' },
+  item: { fontSize: 16, marginTop: 4 },
+  buttons: { flexDirection: 'row', marginTop: 30, gap: 16 },
+  button: { backgroundColor: '#e63946', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10 },
+  buttonText: { color: '#fff', fontSize: 16 },
+  message: { fontSize: 18, color: '#888' },
 });
