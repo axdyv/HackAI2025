@@ -1,76 +1,124 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Button, Alert, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  Easing,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 
-const shuffleArray = (array: number[]) => {
-  return array.sort(() => Math.random() - 0.5);
-};
-
-const generatePuzzle = () => {
-  const puzzle = [1, 2, 3, 4, 5, 6, 7, 8, 0]; // 0 represents the empty space
-  return shuffleArray(puzzle);
-};
+const phases = ['Inhale', 'Hold', 'Exhale', 'Hold'];
 
 export default function AnxietyScreen() {
-  const [puzzle, setPuzzle] = useState(generatePuzzle());
-  const [solved, setSolved] = useState(false);
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [phaseText, setPhaseText] = useState(phases[0]);
+  const [timer, setTimer] = useState(1);
+  const [roundsCompleted, setRoundsCompleted] = useState(0);
+  const [sessionFinished, setSessionFinished] = useState(false);
 
-  // Function to handle tile movement
-  const moveTile = (index: number) => {
-    const newPuzzle = [...puzzle];
-    const emptyIndex = newPuzzle.indexOf(0);
-    const validMoves = [
-      emptyIndex - 3, // Up
-      emptyIndex + 3, // Down
-      emptyIndex - 1, // Left
-      emptyIndex + 1, // Right
-    ];
-    
-    if (validMoves.includes(index) && Math.abs(index - emptyIndex) !== 3) {
-      newPuzzle[emptyIndex] = newPuzzle[index];
-      newPuzzle[index] = 0;
-      setPuzzle(newPuzzle);
-    }
+  const animation = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (sessionFinished) return;
+
+    const isExpand = phaseText === 'Inhale';
+    const isShrink = phaseText === 'Exhale';
+
+    Animated.timing(animation, {
+      toValue: isExpand ? 1.4 : isShrink ? 0.6 : 1,
+      duration: 4000,
+      useNativeDriver: true,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+
+    setTimer(1);
+    let count = 1;
+
+    const interval = setInterval(() => {
+      count++;
+      setTimer(count);
+      if (count === 4) clearInterval(interval);
+    }, 1000);
+
+    const timeout = setTimeout(() => {
+      const nextIndex = (phaseIndex + 1) % phases.length;
+      setPhaseIndex(nextIndex);
+      setPhaseText(phases[nextIndex]);
+
+      // Track rounds (1 round = 4 phases)
+      if (phaseText === 'Hold' && phaseIndex === 3) {
+        setRoundsCompleted((prev) => {
+          const newCount = prev + 1;
+          if (newCount === 3) {
+            setSessionFinished(true);
+          }
+          return newCount;
+        });
+      }
+    }, 4000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, [phaseIndex, phaseText, sessionFinished]);
+
+  const handleRestartSession = () => {
+    setRoundsCompleted(0);
+    setSessionFinished(false);
+    setPhaseIndex(0);
+    setPhaseText(phases[0]);
   };
 
-  // Check if puzzle is solved
-  const checkSolved = () => {
-    const solvedPuzzle = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-    if (JSON.stringify(puzzle) === JSON.stringify(solvedPuzzle)) {
-      setSolved(true);
-      Alert.alert("Well Done!", "You've solved the puzzle! 🎉");
-    }
+  const handleFeelBetter = () => {
+    Alert.alert("That’s great!", "We’re glad you’re feeling better 💚");
   };
 
-  const renderTile = (value: number, index: number) => {
-    if (value === 0) return <View style={styles.tileEmpty} />;
-    return (
-      <TouchableOpacity
-        key={index}
-        style={styles.tile}
-        onPress={() => moveTile(index)}
-      >
-        <Text style={styles.tileText}>{value}</Text>
-      </TouchableOpacity>
-    );
+  const handleWriteFeelings = () => {
+    Alert.alert("Coming Soon!", "We'll help you journal your thoughts. 📝");
+    // If you have a journal screen:
+    // navigation.navigate('SadScreen');
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Anxiety</Text>
       <Text style={styles.description}>
-        Focus your mind with a calming puzzle maze. 🔍
-        {'\n\n'}(Mini-game coming soon!)
+        Let’s calm your mind with some guided breathing. 🌬️
       </Text>
-      
-      {/* Puzzle Grid */}
-      <View style={styles.grid}>
-        {puzzle.map((value, index) => renderTile(value, index))}
-      </View>
-      
-      <Button title="Check if Solved" onPress={checkSolved} color="#2a9d8f" />
-      
-      {/* If solved, show a congratulations message */}
-      {solved && <Text style={styles.congratulations}>Great job! You've solved the puzzle!</Text>}
+
+      <Animated.View style={[styles.bubble, { transform: [{ scale: animation }] }]}>
+        <View style={styles.highlight} />
+        <Text style={styles.timerText}>{timer}</Text>
+      </Animated.View>
+
+      {!sessionFinished && (
+        <>
+          <Text style={styles.phaseText}>{phaseText}</Text>
+          <Text style={styles.subText}>Breathe with the bubble</Text>
+        </>
+      )}
+
+      {sessionFinished && (
+        <View style={styles.sessionEnd}>
+          <Text style={styles.endMessage}>Great job! 💖</Text>
+          <Text style={styles.checkIn}>Are you feeling okay?</Text>
+
+          <TouchableOpacity style={styles.button} onPress={handleFeelBetter}>
+            <Text style={styles.buttonText}>Yes, I feel better</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={handleRestartSession}>
+            <Text style={styles.buttonText}>No, I need another round</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={handleWriteFeelings}>
+            <Text style={styles.buttonText}>I want to write about my feelings</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -90,39 +138,76 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 18,
-    marginTop: 20,
+    marginTop: 10,
     textAlign: 'center',
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    width: 300,
-    marginTop: 30,
+  bubble: {
+    width: 180,
+    height: 180,
+    backgroundColor: 'rgba(149, 213, 178, 0.3)',
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: '#b7e4c7',
+    marginTop: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2a9d8f',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
-  tile: {
-    width: 90,
-    height: 90,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    margin: 5,
-    justifyContent: 'center', // Added missing style property
-    alignItems: 'center', // Added missing style property
+  highlight: {
+    position: 'absolute',
+    top: 25,
+    left: 30,
+    width: 40,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 20,
   },
-  tileText: {
+  timerText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#1b4332',
+  },
+  phaseText: {
+    fontSize: 28,
+    fontWeight: '600',
+    marginTop: 40,
+    color: '#1b4332',
+  },
+  subText: {
+    fontSize: 16,
+    marginTop: 10,
+    color: '#555',
+  },
+  sessionEnd: {
+    marginTop: 40,
+    alignItems: 'center',
+  },
+  endMessage: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#2a9d8f',
+    marginBottom: 10,
+  },
+  checkIn: {
+    fontSize: 18,
+    marginBottom: 20,
     color: '#333',
   },
-  tileEmpty: {
-    width: 90,
-    height: 90,
-    backgroundColor: '#f0f0f0',
+  button: {
+    backgroundColor: '#2a9d8f',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     borderRadius: 10,
-    margin: 5,
+    marginTop: 10,
   },
-  congratulations: {
-    fontSize: 18,
-    marginTop: 20,
-    color: '#2a9d8f',
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
+
