@@ -4,7 +4,6 @@ import useXPSystem from '@/hooks/useXPSystem';
 import XPBar from '@/components/XPBar';
 
 export default function CharacterOverview() {
-  const { profile } = useXPSystem();
 
   const handleInteract = (type: string) => {
     switch (type) {
@@ -18,7 +17,16 @@ export default function CharacterOverview() {
         Alert.alert('🤖', 'Hello, human.');
     }
   };
-
+  const profile = {
+    name: 'Buddy',
+    level: 2,
+    xp: 30,
+    avatar: '🐶',
+    equippedItems: {
+      head: '🎩',
+      hand: '🛡️',
+    },
+  };
   if (!profile) {
     return (
       <View style={styles.container}>
