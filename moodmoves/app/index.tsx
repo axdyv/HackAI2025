@@ -37,7 +37,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Choose Your Mood</ThemedText>
         <View style={styles.buttonContainer}>
-          <Link href="/anger" asChild>
+          <Link href="/anger/playground" asChild>
             <Button title="Anger" color="#FF6347" />
           </Link>
           <Link href="/sad" asChild>
