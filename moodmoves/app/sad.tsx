@@ -29,51 +29,33 @@ const getRandomPrompt = (currentPrompt: string) => {
   return newPrompt;
 };
 
-const SAPLING_API_KEY = "UDB695DPL5QX15XPDFSIA5FC7SP7H9WM"; // your private key
+const anxietyKeywords = [
+  'worried', 'nervous', 'scared', 'afraid', 'anxious', 'panicking', 'uncertain', 'overwhelmed',
+  'insecure', 'stressed', 'restless', 'uneasy', 'concerned', 'apprehensive', 'dread', 'tense',
+  'helpless', 'uncomfortable', 'dizzy',
+];
 
-const analyzeTone = async (text: string): Promise<string | null> => {
-  try {
-    const response = await fetch("https://api.sapling.ai/api/v1/tone", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        key: SAPLING_API_KEY,
-        text,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!data?.overall || !Array.isArray(data.overall) || data.overall.length === 0) {
-      console.warn("Tone analysis returned no results:", data);
-      return null;
-    }
-
-    const topTone = data.overall[0][1];
-    return topTone;
-  } catch (error) {
-    console.error("Tone analysis failed:", error);
-    return null;
-  }
-};
+const angerKeywords = [
+  'pissed', 'annoyed', 'frustrated', 'mad', 'furious', 'upset', 'livid', 'raging', 'bitter',
+  'irritated', 'hate', 'angry', 'exploding', 'offended', 'resentful', 'snapped', 'enraged',
+  'disrespected', 'ignored', 'taken for granted',
+];
 
 export default function SadScreen() {
   const router = useRouter();
   const [journalText, setJournalText] = useState('');
   const [currentPrompt, setCurrentPrompt] = useState(prompts[0]);
-  const [entries, setEntries] = useState<
-    { prompt: string; text: string; date: string; suggestionPath?: string }[]
-  >([]);
+  const [entries, setEntries] = useState<{
+    prompt: string;
+    text: string;
+    date: string;
+    suggestionPaths?: string[];
+  }[]>([]);
   const [toneSuggestion, setToneSuggestion] = useState<string | null>(null);
 
   const toneToPathMap: Record<string, string> = {
-    angry: '/anger',
-    annoyed: '/anger',
-    fearful: '/anxiety',
-    worried: '/anxiety',
-    confused: '/anxiety',
+    anger: '/anger',
+    anxiety: '/anxiety',
   };
 
   const readablePathMap: Record<string, string> = {
@@ -81,23 +63,43 @@ export default function SadScreen() {
     '/anxiety': 'Anxiety Page',
   };
 
-  const handleSubmit = async () => {
+  const detectTone = (text: string): string[] => {
+    const lowerText = text.toLowerCase();
+    const detectedTones: string[] = [];
+
+    const containsAnxiety = anxietyKeywords.some(word => lowerText.includes(word));
+    const containsAnger = angerKeywords.some(word => lowerText.includes(word));
+
+    if (containsAnger) detectedTones.push('anger');
+    if (containsAnxiety) detectedTones.push('anxiety');
+
+    return detectedTones;
+  };
+
+  const handleSubmit = () => {
     if (journalText.trim() === '') {
       Alert.alert('Oops!', 'Please write something in your journal before submitting.');
       return;
     }
 
-    const topTone = await analyzeTone(journalText);
-    const suggestionPath = topTone && toneToPathMap[topTone] ? toneToPathMap[topTone] : null;
+    const detectedTones = detectTone(journalText);
+    const suggestionPaths = detectedTones.map(tone => toneToPathMap[tone]);
 
     const date = new Date().toLocaleString();
-    setEntries([
-      { prompt: currentPrompt, text: journalText.trim(), date, suggestionPath },
-      ...entries,
-    ]);
+    const newEntry = {
+      prompt: currentPrompt,
+      text: journalText.trim(),
+      date,
+      suggestionPaths,
+    };
 
-    if (suggestionPath) {
-      setToneSuggestion(`Based on your entry, you might find the ${readablePathMap[suggestionPath]} helpful.`);
+    setEntries([newEntry, ...entries]);
+
+    if (suggestionPaths.length > 0) {
+      const toneSuggestions = suggestionPaths.map(
+        (path) => `Based on your entry, you might find the ${readablePathMap[path]} helpful.`
+      );
+      setToneSuggestion(toneSuggestions.join(' '));
     } else {
       setToneSuggestion(null);
     }
@@ -147,15 +149,20 @@ export default function SadScreen() {
             <Text style={styles.entryPrompt}>Prompt: {item.prompt}</Text>
             <Text style={styles.entryText}>{item.text}</Text>
             <Text style={styles.entryDate}>{item.date}</Text>
-            {item.suggestionPath && (
-              <TouchableOpacity
-                style={styles.suggestionButton}
-                onPress={() => router.push(item.suggestionPath)}
-              >
-                <Text style={styles.suggestionButtonText}>
-                  Go to {readablePathMap[item.suggestionPath]}
-                </Text>
-              </TouchableOpacity>
+            {item.suggestionPaths && (
+              <View style={styles.suggestionButtons}>
+                {item.suggestionPaths.map((path) => (
+                  <TouchableOpacity
+                    key={path}
+                    style={styles.suggestionButton}
+                    onPress={() => router.push(path as '/anger' | '/anxiety')}
+                  >
+                    <Text style={styles.suggestionButtonText}>
+                      Go to {readablePathMap[path]}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
           </View>
         )}
@@ -243,8 +250,11 @@ const styles = StyleSheet.create({
     color: '#888',
     textAlign: 'right',
   },
-  suggestionButton: {
+  suggestionButtons: {
     marginTop: 10,
+  },
+  suggestionButton: {
+    marginTop: 8,
     padding: 8,
     backgroundColor: '#a8dadc',
     borderRadius: 6,
