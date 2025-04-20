@@ -155,7 +155,7 @@ export default function SadScreen() {
                   <TouchableOpacity
                     key={path}
                     style={styles.suggestionButton}
-                    onPress={() => router.push(path as '/anger' | '/anxiety')}
+                    onPress={() => router.push(path as '/anger/playground' | '/anxiety')}
                   >
                     <Text style={styles.suggestionButtonText}>
                       Go to {readablePathMap[path]}
