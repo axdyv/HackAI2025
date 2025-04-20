@@ -4,10 +4,11 @@ import { View, Text, StyleSheet } from 'react-native';
 type Props = {
   level: number;
   xp: number;
+  xpToNextLevel: number;
 };
 
-export default function XPBar({ level, xp }: Props) {
-  const progress = xp / 100;
+export default function XPBar({ level, xp, xpToNextLevel }: Props) {
+  const progress = Math.min(xp / xpToNextLevel, 1); // Cap at 100%
 
   return (
     <View style={styles.wrapper}>
@@ -15,7 +16,7 @@ export default function XPBar({ level, xp }: Props) {
       <View style={styles.bar}>
         <View style={[styles.fill, { width: `${progress * 100}%` }]} />
       </View>
-      <Text style={styles.xp}>{xp}/100 XP</Text>
+      <Text style={styles.xp}>{xp}/{xpToNextLevel} XP</Text>
     </View>
   );
 }
